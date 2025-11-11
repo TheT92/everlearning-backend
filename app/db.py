@@ -1,8 +1,10 @@
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
 import os
+from pathlib import Path
 
-load_dotenv()  # 默认会加载项目根目录下的 .env 文件
+env_path = Path(__file__).parent.parent / ".env"
+load_dotenv(dotenv_path=env_path)
 
 DB_HOST = os.getenv("DB_HOST")
 DB_NAME = os.getenv("DB_NAME")
@@ -14,6 +16,3 @@ DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{
 
 engine = create_engine(DATABASE_URL)
 
-# with engine.connect() as conn:
-#     result = conn.execute(text("SELECT NOW();"))
-#     print("Connection Success:", result.fetchone())
