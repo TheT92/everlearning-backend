@@ -41,12 +41,13 @@ fake_users_db = {
 
 @app.get("/")
 def read_root():
-    with engine.connect() as conn:
-        # 查询 test 表的所有数据
-        result = conn.execute(text("SELECT * FROM test;"))
-        # 把查询结果转成列表
-        rows = [dict(row) for row in result]
-    return {"message": "Database connected!", "data": rows}
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text("SELECT * FROM test;"))
+            rows = [dict(row._mapping) for row in result]  # 注意 _mapping
+        return {"message": "Database connected!", "data": rows}
+    except Exception as e:
+            return {"error": str(e)}
 
 @app.get("/login")
 def login():
