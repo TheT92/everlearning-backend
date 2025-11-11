@@ -1,5 +1,8 @@
 from sqlalchemy import create_engine, text
+from dotenv import load_dotenv
 import os
+
+load_dotenv()  # 默认会加载项目根目录下的 .env 文件
 
 DB_HOST = os.getenv("DB_HOST")
 DB_NAME = os.getenv("DB_NAME")
