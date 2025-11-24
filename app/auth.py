@@ -25,7 +25,19 @@ def get_password_hash(password):
 # 创建 token
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta if expires_delta else timedelta(minutes=15))
+    expire = datetime.now() + (expires_delta if expires_delta else timedelta(minutes=15))
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+def get_id_from_token(token: str):
+    try:
+        decoded_token = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        print(decoded_token)
+        return decoded_token.get("sub")   # 假设你把用户 id 存在 sub 字段里
+    except jwt.ExpiredSignatureError:
+        print("Token has expired")
+        return None
+    except jwt.JWTError:
+        print("Invalid token")
+        return None
