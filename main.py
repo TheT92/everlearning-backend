@@ -8,8 +8,9 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from app.auth import verify_password, create_access_token, get_password_hash, get_id_from_token
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Query, sessionmaker
 from app.db import engine
-from app.models import Base  # 假设模型放 models.py
+from app.models import Base, TProblem
 
 import uuid
 import datetime
@@ -34,6 +35,22 @@ class ProblemCreate(BaseModel):
     categories: str
     answer: str
     
+class Pagination(BaseModel):
+    page: int
+    size: int
+    
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+def paginate(query: Query, pagination: Pagination):
+    total = query.count()
+    items = query.offset((pagination.page - 1) * pagination.size).limit(pagination.size).all()
+    return {
+        "items": items,
+        "total": total,
+        "page": pagination.page,
+        "page_size": pagination.size,
+        "total_pages": total // pagination.size + 1
+    }
     
 def checkToken(token: str) -> str:
     email = get_id_from_token(token)
@@ -115,17 +132,45 @@ def read_users_me(token: str = Depends(OAuth2PasswordBearer(tokenUrl="token"))):
 @app.get("/category/list")
 def get_categories(token: str = Depends(OAuth2PasswordBearer(tokenUrl="token"))):
     # JWT 验证逻辑
-    email = get_id_from_token(token)
+    checkToken(token)
     with engine.connect() as conn:
         sql = text("select uuid, name from t_problem_category t where t.del_flag = false")
         result = conn.execute(sql)
         rows = [dict(row._mapping) for row in result]
     return {"data": rows}
 
+@app.get("/problem/list")
+def get_problems_page(params: Pagination = Depends(), token: str = Depends(OAuth2PasswordBearer(tokenUrl="token"))):
+    checkToken(token)
+    session = SessionLocal()
+    query = session.query(TProblem).filter(TProblem.del_flag == False)
+    result = paginate(query, params)
+    return result
+
+@app.get("/problem/{uuid}")
+def get_problem_detail(uuid: str, token: str = Depends(OAuth2PasswordBearer(tokenUrl="token"))):
+    checkToken(token)
+    session = SessionLocal()
+    try:
+        problem = session.query(TProblem).filter(
+            TProblem.uuid == uuid,
+            TProblem.del_flag == False
+        ).first()
+        
+        if not problem:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Problem not exist"
+            )
+            
+        return problem
+    finally:
+        session.close()
+
 @app.post("/admin/category/add")
 def add_category(category: CategoryCreate, token: str = Depends(OAuth2PasswordBearer(tokenUrl="token"))):
     # JWT 验证逻辑
-    email = get_id_from_token(token)
+    checkToken(token)
     
     try:
         with engine.connect() as conn:
@@ -158,7 +203,7 @@ def add_category(category: CategoryCreate, token: str = Depends(OAuth2PasswordBe
 @app.get("/admin/category/list")
 def get_categories(token: str = Depends(OAuth2PasswordBearer(tokenUrl="token"))):
     # JWT 验证逻辑
-    email = get_id_from_token(token)
+    checkToken(token)
     with engine.connect() as conn:
         sql = text("select uuid, name from t_problem_category t where t.del_flag = false")
         result = conn.execute(sql)
