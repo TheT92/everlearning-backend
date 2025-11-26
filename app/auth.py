@@ -23,9 +23,10 @@ def get_password_hash(password):
     return pwd_context.hash(password)
 
 # 创建 token
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+def create_access_token(data: dict):
     to_encode = data.copy()
-    expire = datetime.now() + (expires_delta if expires_delta else timedelta(minutes=15))
+
+    expire = datetime.now() + timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt

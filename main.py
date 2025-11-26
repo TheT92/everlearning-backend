@@ -247,12 +247,9 @@ def add_problem(problem: ProblemCreate, token: str = Depends(OAuth2PasswordBeare
     return {"message": "Problem create successfully!"}
 
 @app.get("/admin/problem/list")
-def get_problems(token: str = Depends(OAuth2PasswordBearer(tokenUrl="token"))):
+def get_problems_page(params: Pagination = Depends(), token: str = Depends(OAuth2PasswordBearer(tokenUrl="token"))):
     checkToken(token)
-    
-    with engine.connect() as conn:
-        sql = text("select * from t_problem t where t.del_flag = false")
-        result = conn.execute(sql)
-        rows = [dict(row._mapping) for row in result]
-        
-    return {"data": rows}
+    session = SessionLocal()
+    query = session.query(TProblem).filter(TProblem.del_flag == False)
+    result = paginate(query, params)
+    return result
