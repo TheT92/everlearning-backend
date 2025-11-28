@@ -143,7 +143,7 @@ def get_categories(token: str = Depends(OAuth2PasswordBearer(tokenUrl="token")))
 def get_problems_page(params: Pagination = Depends(), token: str = Depends(OAuth2PasswordBearer(tokenUrl="token"))):
     checkToken(token)
     session = SessionLocal()
-    query = session.query(TProblem).filter(TProblem.del_flag == False)
+    query = session.query(TProblem).filter(TProblem.del_flag == False).order_by(TProblem.create_time.desc())
     result = paginate(query, params)
     return result
 
@@ -162,7 +162,22 @@ def get_problem_detail(uuid: str, token: str = Depends(OAuth2PasswordBearer(toke
                 status_code=404,
                 detail=f"Problem not exist"
             )
-            
+
+        current_id = problem.id
+        # query previouse problem
+        prev_problem = session.query(TProblem).filter(
+            TProblem.id > current_id,
+            TProblem.del_flag == False
+        ).order_by(TProblem.id.asc()).first()
+        # query next problem
+        next_problem = session.query(TProblem).filter(
+            TProblem.id < current_id,
+            TProblem.del_flag == False
+        ).order_by(TProblem.id.desc()).first()
+        prev_id = prev_problem.uuid if prev_problem else None
+        next_id = next_problem.uuid if next_problem else None
+        problem.prev_id = prev_id
+        problem.next_id = next_id
         return problem
     finally:
         session.close()
@@ -250,6 +265,6 @@ def add_problem(problem: ProblemCreate, token: str = Depends(OAuth2PasswordBeare
 def get_problems_page(params: Pagination = Depends(), token: str = Depends(OAuth2PasswordBearer(tokenUrl="token"))):
     checkToken(token)
     session = SessionLocal()
-    query = session.query(TProblem).filter(TProblem.del_flag == False)
+    query = session.query(TProblem).filter(TProblem.del_flag == False).order_by(TProblem.create_time.desc())
     result = paginate(query, params)
     return result
