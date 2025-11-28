@@ -10,7 +10,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Query, sessionmaker
 from app.db import engine
-from app.models import Base, TProblem
+from app.models import Base, TCourse, TProblem
 
 import uuid
 import datetime
@@ -34,6 +34,12 @@ class ProblemCreate(BaseModel):
     difficulty: int
     categories: str
     answer: str
+
+class CourseCreate(BaseModel):
+    title: str
+    content: str
+    courseType: int
+    categories: str
     
 class Pagination(BaseModel):
     page: int
@@ -142,9 +148,9 @@ def get_categories(token: str = Depends(OAuth2PasswordBearer(tokenUrl="token")))
 @app.get("/problem/list")
 def get_problems_page(params: Pagination = Depends(), token: str = Depends(OAuth2PasswordBearer(tokenUrl="token"))):
     checkToken(token)
-    session = SessionLocal()
-    query = session.query(TProblem).filter(TProblem.del_flag == False).order_by(TProblem.create_time.desc())
-    result = paginate(query, params)
+    with SessionLocal() as session:
+        query = session.query(TProblem).filter(TProblem.del_flag == False).order_by(TProblem.create_time.desc())
+        result = paginate(query, params)
     return result
 
 @app.get("/problem/{uuid}")
@@ -182,6 +188,48 @@ def get_problem_detail(uuid: str, token: str = Depends(OAuth2PasswordBearer(toke
     finally:
         session.close()
 
+@app.get("/course/list")
+def get_courses_page(params: Pagination = Depends(), token: str = Depends(OAuth2PasswordBearer(tokenUrl="token"))):
+    checkToken(token)
+    with SessionLocal() as session:
+        query = session.query(TCourse).filter(TCourse.del_flag == False, TCourse.is_published == True).order_by(TCourse.create_time.desc())
+        result = paginate(query, params)
+    return result
+
+@app.post("/course/add")
+def add_course(course: CourseCreate, token: str = Depends(OAuth2PasswordBearer(tokenUrl="token"))):
+    email = checkToken(token)
+    entity = TCourse(
+        title = course.title,
+        content = course.content,
+        course_type = course.courseType,
+        categories = course.categories,
+        created_by = email,
+        is_published = True,
+        del_flag = False
+    )
+    with SessionLocal() as session:
+        session.add(entity)
+        session.commit()
+    return {"message": "Course create successfully!"}
+    
+@app.get("/course/{uuid}")
+def get_course_detail(uuid: str, token: str = Depends(OAuth2PasswordBearer(tokenUrl="token"))):
+    checkToken(token)
+    with SessionLocal() as session:
+        course = session.query(TCourse).filter(
+            TCourse.uuid == uuid,
+            TCourse.del_flag == False,
+            TCourse.is_published == True
+        ).first()
+        if not course:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Problem not exist"
+            )
+    return course
+
+        
 @app.post("/admin/category/add")
 def add_category(category: CategoryCreate, token: str = Depends(OAuth2PasswordBearer(tokenUrl="token"))):
     # JWT 验证逻辑

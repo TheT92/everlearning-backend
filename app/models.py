@@ -119,4 +119,45 @@ class TProblem(Base):
         server_default="false",
         nullable=True
     )
+
+class TCourse(Base):
+    __tablename__ = "t_course"
+    __table_args__ = (
+        UniqueConstraint("uuid", name="t_course_uuid_key"),
+        UniqueConstraint("title", name="t_course_title_key"),
+    )
     
+    id = Column(
+        Integer,
+        primary_key=True,
+        autoincrement=True
+    )
+
+    uuid = Column(
+        UUID(as_uuid=True),
+        nullable=False,
+        default=uuid.uuid4   # 让 SQLAlchemy 自动生成 uuid
+    )
+    
+    title = Column(Text, nullable=False)
+    
+    course_type = Column(Integer, nullable = False)
+    
+    categories = Column(Text, nullable=False)
+    
+    content = Column(Text, nullable=False)
+    
+    created_by = Column(Text, nullable=False)
+    
+    is_published = Column(Boolean, server_default="false", nullable=False)
+    
+    create_time = Column(
+        TIMESTAMP(timezone=True),
+        server_default=func.now()
+    )
+    
+    del_flag = Column(
+        Boolean,
+        server_default="false",
+        nullable=True
+    )
