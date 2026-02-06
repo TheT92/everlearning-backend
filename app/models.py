@@ -161,3 +161,41 @@ class TCourse(Base):
         server_default="false",
         nullable=True
     )
+
+
+class TFlashcardReview(Base):
+    """闪卡复习记录：只记录用户对某道题是记住了还是没记住"""
+    __tablename__ = "t_flashcard_review"
+    __table_args__ = (
+        UniqueConstraint("user_email", "problem_uuid", name="t_flashcard_review_user_problem_key"),
+    )
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        autoincrement=True
+    )
+
+    user_email = Column(Text, nullable=False)
+
+    problem_uuid = Column(Text, nullable=False)
+
+    remembered = Column(Boolean, nullable=False)  # True=记住了, False=没记住
+
+    create_time = Column(
+        TIMESTAMP(timezone=True),
+        server_default=func.now()
+    )
+
+
+class TUserFavorite(Base):
+    """用户收藏的题目"""
+    __tablename__ = "t_user_favorite"
+    __table_args__ = (
+        UniqueConstraint("user_email", "problem_uuid", name="t_user_favorite_user_problem_key"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_email = Column(Text, nullable=False)
+    problem_uuid = Column(Text, nullable=False)
+    create_time = Column(TIMESTAMP(timezone=True), server_default=func.now())
